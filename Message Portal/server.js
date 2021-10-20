@@ -5,6 +5,8 @@ var http = require('http').Server(app)
 var io = require('socket.io')(http)
 var mongoose = require('mongoose')
 
+mongoose.Promise = Promise
+
 app.use(express.static(__dirname))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
@@ -19,8 +21,8 @@ var Message = mongoose.model('Message', {
 })
 
 // var messages = [
-//     {name: 'savan', message: 'hello from savan'},
-//     {name: 'ritu', message: 'hello from ritu'}
+//     {name: 'demo', message: 'message from demo'},
+//     {name: 'demo2', message: 'message from demo 2'}
 // ]
 
 // get all the messages from the MongoDB
@@ -30,18 +32,33 @@ app.get('/messages', (req, res) => {
     })
 })
 
-app.post('/messages', (req, res) => {
-    //store messages into MongoDB
-    var message = new Message(req.body)
+app.post('/messages', async (req, res) => {
+    
+    try{
+        //throw 'message from'
+        //store messages into MongoDB
+        var message = new Message(req.body)
 
-    message.save((err) => {
-        if (err)
-            sendStatus(500)
+        var savedMessage = await message.save()
 
-    //    messages.push(req.body)
-        io.emit('message', req.body)
-        res.sendStatus(200)
-    })
+        console.log('saved')
+        var censored = await Message.findOne({message: 'bad'}) // promise --> result use in next chain call
+
+            if(censored){
+                await Message.remove({_id: censored.id})
+            }
+            else{
+        //  messages.push(req.body)
+                io.emit('message', req.body)
+            }
+            res.sendStatus(200)
+
+    } catch(error){
+        res.sendStatus(500)
+        return console.error(error)
+    } finally {
+        console.log('message from finally')
+    }
     
 })
 
